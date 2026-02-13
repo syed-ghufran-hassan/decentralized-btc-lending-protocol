@@ -87,12 +87,31 @@
         (asserts! (> amount u0) ERR-INVALID-AMOUNT)
         (try! (stx-transfer? amount tx-sender (as-contract tx-sender)))
         
-        (map-set collateral-balances 
-            tx-sender 
-            (+ (get-collateral-balance tx-sender) amount))
-        
-        (var-set total-collateral (+ (var-get total-collateral) amount))
-        (ok true))
+        (let (
+            (new-balance (+ (get-collateral-balance tx-sender) amount))
+        )
+            ;; Update user collateral balance
+            (map-set collateral-balances 
+                tx-sender 
+                new-balance)
+            
+            ;; Update total collateral
+            (var-set total-collateral 
+                (+ (var-get total-collateral) amount))
+            
+            ;; Emit event
+            (print {
+                event: "deposit-collateral",
+                user: tx-sender,
+                amount: amount,
+                new-balance: new-balance,
+                total-collateral: (var-get total-collateral),
+                block: block-height
+            })
+            
+            (ok true)
+        )
+    )
 )
 
 (define-public (borrow (amount uint))
